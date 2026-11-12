@@ -27,6 +27,24 @@ async function call<T>(
   params: Params,
   options: CfCallOptions = {},
 ): Promise<CfResult<T>> {
+  const result = await request<T>(method, params, options);
+  // A skipped call is routine. Anything else is worth a line in the logs:
+  // it is how a block by Cloudflare or a Codeforces outage gets noticed.
+  if (
+    !result.ok &&
+    result.reason !== "rate_limited" &&
+    result.reason !== "failed"
+  ) {
+    console.warn(`Codeforces ${method}: ${result.reason} (${result.message})`);
+  }
+  return result;
+}
+
+async function request<T>(
+  method: string,
+  params: Params,
+  options: CfCallOptions = {},
+): Promise<CfResult<T>> {
   const {
     onBusy = "skip",
     maxWaitMs = 20_000,

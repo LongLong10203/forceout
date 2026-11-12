@@ -22,6 +22,9 @@ export async function GET(request: Request) {
   const started = Date.now();
   const result = await syncProblemCache();
   const body = { ...result, tookMs: Date.now() - started };
+  // Shows up in the host's logs, so a failed run can be diagnosed.
+  if (result.ok) console.log("Problem cache sync finished", body);
+  else console.error("Problem cache sync failed", body);
 
   // A failed Codeforces call is not an error on our side: the next run retries.
   return Response.json(body, { status: result.ok ? 200 : 503 });
