@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "forceout",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-c", "export PATH=\"$HOME/Library/pnpm/bin:$PATH\"; exec pnpm dev"],
+      "port": 3000
+    }
+  ]
+}

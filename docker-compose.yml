@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:17
+    container_name: forceout-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: forceout
+      POSTGRES_PASSWORD: forceout
+      POSTGRES_DB: forceout
+    ports:
+      - "5432:5432"
+    volumes:
+      - forceout-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forceout -d forceout"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  forceout-db:

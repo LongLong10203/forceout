@@ -1,0 +1,223 @@
+// ForceOut schema. See docs/OVERVIEW.md, "Data model".
+// All times are stored in UTC as timestamptz.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MatchStatus {
+  lobby
+  live
+  finished
+  cancelled
+}
+
+enum PlayerOutcome {
+  win
+  loss
+  draw
+  forfeit
+}
+
+/// One row per ForceOut account. This is Better Auth's user table
+/// (added in build step 3) with the Codeforces fields on top.
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  /// Null until a handle is linked and verified.
+  cfHandle     String?   @unique @map("cf_handle")
+  cfRating     Int?      @map("cf_rating")
+  cfVerifiedAt DateTime? @map("cf_verified_at") @db.Timestamptz(3)
+
+  sessions         Session[]
+  accounts         Account[]
+  handleChallenges HandleChallenge[]
+  hostedMatches    Match[]
+  matchPlayers     MatchPlayer[]
+  claims           MatchProblem[]
+
+  @@map("users")
+}
+
+/// Better Auth: one row per signed-in browser.
+model Session {
+  id        String   @id
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Better Auth: the Google identity linked to a user.
+model Account {
+  id                    String    @id
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Better Auth: short-lived values such as the OAuth state.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+/// Pending handle verifications.
+model HandleChallenge {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  cfHandle  String   @map("cf_handle")
+  problemId String   @map("problem_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id])
+
+  @@index([userId])
+  @@map("handle_challenges")
+}
+
+/// Cache of the Codeforces problemset. Only rated problems are stored.
+model Problem {
+  /// Contest ID plus index, for example "1520C".
+  id        String   @id
+  contestId Int      @map("contest_id")
+  index     String
+  name      String
+  rating    Int
+  tags      String[]
+
+  handleChallenges HandleChallenge[]
+  matchProblems    MatchProblem[]
+
+  @@unique([contestId, index])
+  @@index([rating])
+  @@map("problems")
+}
+
+/// One row per room and its match.
+model Match {
+  id        String      @id @default(cuid())
+  /// 6 character invite code.
+  code      String      @unique
+  hostId    String      @map("host_id")
+  mode      String
+  config    Json
+  status    MatchStatus @default(lobby)
+  /// The mode's board. A cache rebuilt from match_problems, not the source of truth.
+  state     Json?
+  /// Goes up by one on every change to the match.
+  version   Int         @default(0)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  startsAt  DateTime?   @map("starts_at") @db.Timestamptz(3)
+  endsAt    DateTime?   @map("ends_at") @db.Timestamptz(3)
+  result    Json?
+
+  host     User           @relation(fields: [hostId], references: [id])
+  players  MatchPlayer[]
+  problems MatchProblem[]
+
+  @@index([status])
+  @@map("matches")
+}
+
+/// Who is in a match.
+model MatchPlayer {
+  matchId          String         @map("match_id")
+  userId           String         @map("user_id")
+  seat             Int
+  ready            Boolean        @default(false)
+  score            Int            @default(0)
+  outcome          PlayerOutcome?
+  joinedAt         DateTime       @default(now()) @map("joined_at") @db.Timestamptz(3)
+  /// When this player's Codeforces submissions were last checked. Decides
+  /// whose turn it is: the player checked longest ago goes next.
+  lastCheckedAt    DateTime?      @map("last_checked_at") @db.Timestamptz(3)
+  /// Every submission this player made up to this time has been seen and
+  /// judged, and any solve among them is recorded. Used by the fair-claim rule.
+  checkedThrough   DateTime?      @map("checked_through") @db.Timestamptz(3)
+  /// When the player last pressed "Check my submissions" (15 second cooldown).
+  checkRequestedAt DateTime?      @map("check_requested_at") @db.Timestamptz(3)
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@id([matchId, userId])
+  @@unique([matchId, seat])
+  @@index([userId])
+  @@index([lastCheckedAt])
+  @@map("match_players")
+}
+
+/// The problems on the board.
+model MatchProblem {
+  id             String    @id @default(cuid())
+  matchId        String    @map("match_id")
+  /// List position, grid cell 0 to 8, or round number.
+  slot           Int
+  problemId      String    @map("problem_id")
+  points         Int       @default(0)
+  claimedBy      String?   @map("claimed_by")
+  claimedAt      DateTime? @map("claimed_at") @db.Timestamptz(3)
+  cfSubmissionId BigInt?   @map("cf_submission_id")
+  /// When the problem became visible to players (Blitz reveals per round).
+  revealedAt     DateTime? @map("revealed_at") @db.Timestamptz(3)
+
+  match   Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id])
+  claimer User?   @relation(fields: [claimedBy], references: [id])
+
+  @@unique([matchId, slot])
+  @@map("match_problems")
+}
+
+/// One row (id = 1) that enforces the Codeforces rate limit across all
+/// serverless instances.
+model CfRateLimit {
+  id            Int      @id @default(1)
+  nextAllowedAt DateTime @default(now()) @map("next_allowed_at") @db.Timestamptz(3)
+
+  @@map("cf_rate_limit")
+}
