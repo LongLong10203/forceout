@@ -103,7 +103,7 @@ Do not run `pnpm db:seed` against a production database: it only adds the fake d
 ## Credits
 
 - **Designed by [Long](https://github.com/LongLong10203)**, who wrote the product design, made the decisions and tested the app.
-- **Built with [Claude Code](https://claude.com/claude-code).** Claude, Anthropic's AI model, wrote the code and tests and set up the deployment, working step by step from the design document.
+- **Built with [Claude Code](https://claude.com/claude-code).** Claude Fable 5.2, an AI model by Anthropic, wrote the code and tests and set up the deployment, working step by step from the design document.
 
 ## License
 
