@@ -105,4 +105,8 @@ Do not run `pnpm db:seed` against a production database: it only adds the fake d
 - **Designed by [Long](https://github.com/LongLong10203)**, who wrote the product design, made the decisions and tested the app.
 - **Built with [Claude Code](https://claude.com/claude-code).** Claude, Anthropic's AI model, wrote the code and tests and set up the deployment, working step by step from the design document.
 
+## License
+
+[MIT](LICENSE). You are free to use, change and share the code, as long as the copyright notice stays with it.
+
 ForceOut is an independent project. It is not affiliated with or endorsed by Codeforces. It only reads public data through the [official Codeforces API](https://codeforces.com/apiHelp) and never submits anything on your behalf.
