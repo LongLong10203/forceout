@@ -35,15 +35,15 @@ Every mode also ends early when the result can no longer change, and a player ca
 
 ForceOut is one Next.js app with no background worker. The players' browsers poll a sync endpoint every 3 seconds, and those requests also do the background work: checking Codeforces and moving the match clock forward.
 
-| Layer        | Choice                                                         |
-| ------------ | -------------------------------------------------------------- |
-| Framework    | Next.js 16 (App Router, React Server Components), TypeScript   |
-| Database     | PostgreSQL with Prisma (Neon in production, Docker locally)    |
-| Auth         | Better Auth with Google sign-in                                |
-| UI           | Tailwind CSS 4, shadcn/ui                                      |
-| Live updates | Short polling with TanStack Query                              |
-| Tests        | Vitest for the game rules                                      |
-| Hosting      | Vercel, with a daily cron job that refreshes the problem cache |
+| Layer        | Choice                                                                                                |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| Framework    | Next.js 16 (App Router, React Server Components), TypeScript                                          |
+| Database     | PostgreSQL with Prisma (Neon in production, Docker locally)                                           |
+| Auth         | Better Auth with Google sign-in                                                                       |
+| UI           | Tailwind CSS 4, shadcn/ui                                                                             |
+| Live updates | Short polling with TanStack Query                                                                     |
+| Tests        | Vitest for the game rules                                                                             |
+| Hosting      | Vercel, with a daily cron job that refreshes the problem cache and ratings and clears abandoned rooms |
 
 A few design points:
 
@@ -68,16 +68,16 @@ pnpm dev               # http://localhost:3000
 
 Outside production, the login page offers two fake players, "Alice (dev)" and "Bob (dev)", and the match page has a "fake solve" panel, so you can test a full match by yourself without touching Codeforces.
 
-| Command          | What it does                                              |
-| ---------------- | --------------------------------------------------------- |
-| `pnpm db:down`   | Stop Postgres (data is kept)                              |
-| `pnpm db:studio` | Browse the database                                       |
-| `pnpm cf:sync`   | Run the problem cache sync now (needs `pnpm dev` running) |
-| `pnpm cf:check`  | Try the Codeforces client against the real API            |
-| `pnpm test`      | Unit tests for the game mode rules                        |
-| `pnpm lint`      | ESLint                                                    |
-| `pnpm format`    | Prettier                                                  |
-| `pnpm build`     | Production build                                          |
+| Command           | What it does                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| `pnpm db:down`    | Stop Postgres (data is kept)                                                            |
+| `pnpm db:studio`  | Browse the database                                                                     |
+| `pnpm cron:daily` | Run the daily job now: problem sync, rating refresh, cleanup (needs `pnpm dev` running) |
+| `pnpm cf:check`   | Try the Codeforces client against the real API                                          |
+| `pnpm test`       | Unit tests for the game mode rules                                                      |
+| `pnpm lint`       | ESLint                                                                                  |
+| `pnpm format`     | Prettier                                                                                |
+| `pnpm build`      | Production build                                                                        |
 
 ## Deploy your own
 
@@ -96,7 +96,7 @@ The live site deploys automatically from the `main` branch. To host a copy yours
 
 4. In the Google OAuth client, add `https://YOUR-SITE` to the JavaScript origins and `https://YOUR-SITE/api/auth/callback/google` to the redirect URIs.
 5. Deploy. The build creates the database tables.
-6. Fill the problem cache once: in Vercel, open **Settings → Cron Jobs** and press **Run** next to `/api/cron/problems`. After that it runs daily.
+6. Fill the problem cache once: in Vercel, open **Settings → Cron Jobs** and press **Run** next to `/api/cron/daily`. After that it runs daily.
 
 Do not run `pnpm db:seed` against a production database: it only adds the fake development players.
 

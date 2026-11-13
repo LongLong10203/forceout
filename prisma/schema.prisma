@@ -219,5 +219,11 @@ model CfRateLimit {
   id            Int      @id @default(1)
   nextAllowedAt DateTime @default(now()) @map("next_allowed_at") @db.Timestamptz(3)
 
+  /// The last read of the site-wide feed of recent submissions (used when
+  /// many players are live): when it was read, and the time of the oldest
+  /// submission it contained.
+  recentPolledAt DateTime? @map("recent_polled_at") @db.Timestamptz(3)
+  recentOldestAt DateTime? @map("recent_oldest_at") @db.Timestamptz(3)
+
   @@map("cf_rate_limit")
 }

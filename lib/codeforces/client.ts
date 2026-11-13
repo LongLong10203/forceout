@@ -171,3 +171,17 @@ export async function solvedProblemIds(
   }
   return { ok: true, result: [...solved] };
 }
+
+/** Profile data for many handles in one call. Fails if any handle is unknown. */
+export function usersInfo(handles: string[], options?: CfCallOptions) {
+  return call<CfUser[]>("user.info", { handles: handles.join(";") }, options);
+}
+
+/**
+ * The most recent submissions of all users, newest first: one call that
+ * covers every player at once. About 600 KB for 1000 submissions.
+ * The feed runs several seconds behind real time.
+ */
+export function recentStatus(count = 1000, options?: CfCallOptions) {
+  return call<CfSubmission[]>("problemset.recentStatus", { count }, options);
+}

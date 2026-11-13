@@ -16,7 +16,7 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "cf:check": "tsx scripts/cf-check.ts",
-    "cf:sync": "curl -s -H \"Authorization: Bearer $(grep ^CRON_SECRET .env | cut -d\\\" -f2)\" http://localhost:3000/api/cron/problems",
+    "cron:daily": "curl -s -H \"Authorization: Bearer $(grep ^CRON_SECRET .env | cut -d\\\" -f2)\" http://localhost:3000/api/cron/daily",
     "test": "vitest run"
   },
   "dependencies": {

@@ -34,6 +34,8 @@ export type CfSubmission = {
   problem: CfProblem;
   /** Missing while the submission is still in the queue. */
   verdict?: CfVerdict;
+  /** Who submitted. Only read from the site-wide feed. */
+  author?: { members: { handle: string }[] };
 };
 
 /** Why a call did not produce a result. None of these are fatal: try later. */
